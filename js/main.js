@@ -181,7 +181,7 @@ const resources = {
   ],
   cri: [
     //{ type: "video", title: { fr: "Les composants d'un ordinateur", en: "Computer Components" }, description: { fr: "Découvrez les éléments essentiels d'une architecture informatique.", en: "Explore the essential components of computer architecture." }, duration: "22:10", url: "" },
-    { type: "pdf", title: { fr: "STRUCTURE DE LA MACHINE 1", en: "MACHINE STRUCTURE 1" }, description: { fr: "", en: "" }, url: "assets/cri-strm/STRM1_Chapter1_Part1_OUAZAR.pdf" },
+    { type: "pdf", title: { fr: "STRUCTURE DE LA MACHINE 1", en: "MACHINE STRUCTURE 1" }, description: { fr: "", en: "" }, url: "assets/cri-strm/pdfs/STRM1_Chapter1_Part1_OUAZAR.pdf" },
   ],
   mp: [
     //{ type: "link", title: { fr: "Wolfram MathWorld", en: "Wolfram MathWorld" }, description: { fr: "Référence pratique pour retrouver les définitions mathématiques.", en: "A handy reference for mathematical definitions." }, url: "https://mathworld.wolfram.com/" }
