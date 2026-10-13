@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#121212">
+    <meta name="description" content="Votre espace de travail pour la première année Informatique à l'USTHB.">
+    <title>Campus L1 — Informatique USTHB</title>
+    <link rel="stylesheet" href="css/syle.css">
+    <script src="js/main.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Navigation principale">
+        <a class="brand" href="#home" aria-label="Campus L1, accueil">
+          <span class="brand-mark" aria-hidden="true">&lt;/&gt;</span>
+          <span class="brand-copy"><strong>campus<span>.</span></strong><small>USTHB · INFORMATIQUE</small></span>
+        </a>
+
+        <div class="sidebar-label" id="sidebar-label">ESPACE ÉTUDIANT</div>
+        <nav class="primary-nav" id="primary-nav"></nav>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <button class="icon-button menu-toggle" id="menu-toggle" type="button" aria-label="Ouvrir le menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="breadcrumb" id="breadcrumb"><span>ESPACE ÉTUDIANT</span><b>/</b><strong>Accueil</strong></div>
+          <div class="topbar-actions">
+            <label class="search-box" for="global-search">
+              <span aria-hidden="true">⌕</span>
+              <input id="global-search" type="search" placeholder="Rechercher un module..." autocomplete="off">
+              <kbd>/</kbd>
+            </label>
+            <span class="topbar-divider"></span>
+            <span class="today-label" id="today-label"></span>
+            <div class="language-switch" role="group" aria-label="Langue">
+              <button class="language-button is-active" type="button" data-language="fr" aria-pressed="true">FR</button>
+              <button class="language-button" type="button" data-language="en" aria-pressed="false">EN</button>
+            </div>
+            <div class="top-avatar" aria-hidden="true">L1</div>
+          </div>
+        </header>
+
+        <div class="page-content" id="page-content" aria-live="polite"></div>
+        <footer class="footer"><span id="footer-motto">Fait pour apprendre, construit pour avancer.</span><span>USTHB <b>·</b> <span id="footer-program">INFORMATIQUE L1</span></span></footer>
+      </main>
+    </div>
+
+    <div class="sidebar-scrim" id="sidebar-scrim"></div>
+  </body>
+</html>
