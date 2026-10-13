@@ -4,7 +4,6 @@ const languages = {
     about: "À propos",
     navHeading: "ESPACE ÉTUDIANT",
     languageLabel: "Langue",
-    search: "Rechercher un module...",
     breadcrumb: "ESPACE ÉTUDIANT",
     motto: "Fait pour apprendre, construit pour avancer.",
     footerProgram: "INFORMATIQUE L1",
@@ -36,10 +35,8 @@ const languages = {
     unavailable: "Fichier à configurer",
     noResourcesTitle: "Aucune ressource pour le moment",
     noResourcesDescription: "Les ressources de ce type seront publiées ici.",
-    noResults: "Aucun module ne correspond à votre recherche.",
     videoUnavailable: "Ajoutez une URL de vidéo YouTube valide dans js/main.js.",
     documentUnavailable: "Le document n'est pas encore configuré. Ajoutez son chemin dans js/main.js.",
-    searchGroup: "Rechercher un module",
     menuOpen: "Ouvrir le menu",
     menuClose: "Fermer le menu",
     linkNewTab: "Ouvre dans un nouvel onglet",
@@ -64,7 +61,6 @@ const languages = {
     about: "About",
     navHeading: "STUDENT SPACE",
     languageLabel: "Language",
-    search: "Search modules...",
     breadcrumb: "STUDENT SPACE",
     motto: "Built for learning. Made for progress.",
     footerProgram: "COMPUTER SCIENCE L1",
@@ -96,10 +92,8 @@ const languages = {
     unavailable: "File not configured",
     noResourcesTitle: "No resources yet",
     noResourcesDescription: "Resources of this type will appear here.",
-    noResults: "No modules match your search.",
     videoUnavailable: "Add a valid YouTube video URL in js/main.js.",
     documentUnavailable: "This document is not configured yet. Add its path in js/main.js.",
-    searchGroup: "Search modules",
     menuOpen: "Open menu",
     menuClose: "Close menu",
     linkNewTab: "Opens in a new tab",
@@ -207,8 +201,8 @@ const navItems = [{ id: "home", icon: "⌂" }, ...modules.map(module => ({ id: m
 const pageContent = document.getElementById("page-content");
 const primaryNav = document.getElementById("primary-nav");
 const breadcrumb = document.getElementById("breadcrumb");
-const searchInput = document.getElementById("global-search");
-let language = "fr";
+const savedLanguage = localStorage.getItem("preferred_language");
+let language = savedLanguage === "en" ? "en" : "fr";
 let activePage = "home";
 let activeTab = "video";
 
@@ -237,8 +231,6 @@ function updateStaticLabels() {
   document.getElementById("footer-motto").textContent = copy.motto;
   document.getElementById("footer-program").textContent = copy.footerProgram;
   document.getElementById("menu-toggle").setAttribute("aria-label", document.body.classList.contains("menu-open") ? copy.menuClose : copy.menuOpen);
-  searchInput.placeholder = copy.search;
-  searchInput.setAttribute("aria-label", copy.searchGroup);
   document.querySelectorAll("[data-language]").forEach(button => {
     const selected = button.dataset.language === language;
     button.classList.toggle("is-active", selected);
@@ -268,7 +260,7 @@ function renderHome() {
       </div>
       <div class="welcome-code" aria-hidden="true">
         <div class="code-top"><i></i><i></i><i></i></div>
-        <p class="code-line"><span class="muted">// ${language === "fr" ? "année" : "year"} 2025–26</span></p>
+        <p class="code-line"><span class="muted">// ${language === "fr" ? "année" : "year"} 2026–27</span></p>
         <p class="code-line"><span class="blue">const</span> parcours = <span class="green">"Informatique"</span>;</p>
         <p class="code-line"><span class="blue">const</span> niveau = <span class="green">"L1"</span>;</p>
         <p class="code-line"><span class="blue">while</span> (motivation) { <span class="green">learn()</span>; }</p>
@@ -285,7 +277,7 @@ function renderHome() {
     </section>
     <section class="home-subjects" aria-labelledby="subjects-heading">
       <div class="section-heading"><div><h2 id="subjects-heading">${copy.subjects}</h2><p>${copy.subjectsDescription}</p></div></div>
-      <div class="subjects-grid">${renderSubjectCards(filterModules(searchInput.value))}</div>
+      <div class="subjects-grid">${renderSubjectCards()}</div>
     </section>`;
 }
 
@@ -322,17 +314,9 @@ function renderAbout() {
     </section>`;
 }
 
-function filterModules(query) {
-  const normalizedQuery = query.trim().toLocaleLowerCase(language === "fr" ? "fr" : "en");
-  if (!normalizedQuery) return modules;
-  return modules.filter(module => [module.short.fr, module.short.en, module.name.fr, module.name.en]
-    .some(label => label.toLocaleLowerCase(language === "fr" ? "fr" : "en").includes(normalizedQuery)));
-}
-
-function renderSubjectCards(list) {
+function renderSubjectCards() {
   const copy = languages[language];
-  if (!list.length) return `<div class="no-results">${copy.noResults}</div>`;
-  return list.map(module => `
+  return modules.map(module => `
     <button class="subject-card" style="--subject-accent:${module.color}" type="button" data-action="open-module" data-module="${module.id}">
       <span class="subject-icon" aria-hidden="true">${module.icon}</span>
       <span class="subject-info"><strong>${escapeHtml(text(module.short))}</strong><small>${copy.resourcesCount(resources[module.id].length)}</small></span>
@@ -471,22 +455,11 @@ pageContent.addEventListener("click", event => {
   }
 });
 
-searchInput.addEventListener("input", () => {
-  if (activePage === "home") {
-    const subjectGrid = pageContent.querySelector(".subjects-grid");
-    if (subjectGrid) subjectGrid.innerHTML = renderSubjectCards(filterModules(searchInput.value));
-    return;
-  }
-  const query = searchInput.value.trim().toLocaleLowerCase(language === "fr" ? "fr" : "en");
-  const foundModule = modules.find(module => [module.short.fr, module.short.en, module.name.fr, module.name.en]
-    .some(label => label.toLocaleLowerCase(language === "fr" ? "fr" : "en").includes(query)));
-  if (query && foundModule) navigateTo(foundModule.id);
-});
-
 document.querySelector(".language-switch").addEventListener("click", event => {
   const button = event.target.closest("[data-language]");
   if (!button || button.dataset.language === language) return;
   language = button.dataset.language;
+  localStorage.setItem("preferred_language", language);
   updateStaticLabels();
   renderPage();
 });
@@ -505,10 +478,6 @@ document.getElementById("sidebar-scrim").addEventListener("click", () => {
 });
 
 document.addEventListener("keydown", event => {
-  if (event.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) {
-    event.preventDefault();
-    searchInput.focus();
-  }
   if (event.key === "Escape") {
     document.body.classList.remove("menu-open");
     const menuToggle = document.getElementById("menu-toggle");
