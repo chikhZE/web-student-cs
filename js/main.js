@@ -128,9 +128,21 @@ const modules = [
 
 // Edit this list to publish announcements. Each item supports bilingual content.
 const announcements = [
+
+  {
+    tag: { fr: "IMPORTANT", en: "IMPORTANT" },
+    color: "#D0342C",
+    date: "2026-10-14",
+    title: { fr: "Nous avons un cours demain !", en: "We have a lesson tomorrow!" },
+    description: {
+      fr: "Demain à 8 h 30, nous avons un cours de MP ; vous trouverez le lien de la réunion dans la section MP.",
+      en: "Tomorrow at 8:30 AM, we have an MP lesson; you will find the meeting link in the MP section."
+    },
+    destination: { page: "mp", tab: "link" }
+  },
   {
     tag: { fr: "IMPORTANT", en: "WELCOME" },
-    color: "green",
+    color: "",
     date: "2026-10-13",
     title: { fr: "Bienvenue en première année !", en: "Welcome to your first year!" },
     description: {
@@ -138,16 +150,7 @@ const announcements = [
       en: "Find your courses, tutorials, and resources here to get your year at USTHB off to a great start."
     }
   },
-  {
-    tag: { fr: "IMPORTANT", en: "IMPORTANT" },
-    color: "green",
-    date: "2026-10-14",
-    title: { fr: "Nous avons un cours demain !", en: "We have a lesson tomorrow!" },
-    description: {
-      fr: "Demain à 8 h 30, nous avons un cours de MP ; vous trouverez le lien de la réunion dans la section MP.",
-      en: "Tomorrow at 8:30 AM, we have an MP lesson; you will find the meeting link in the MP section."
-    }
-  },
+
   {
     tag: { fr: "ALGORITHMIQUE", en: "ALGORITHMS" },
     color: "",
@@ -156,7 +159,8 @@ const announcements = [
     description: {
       fr: "Les premières ressources d'algorithmique sont en ligne. Consultez l'espace du module.",
       en: "The first algorithms resources are online. Visit the module page to explore them."
-    }
+    },
+    destination: { page: "algo", tab: "pdf" }
   },
   {
     tag: { fr: "CAMPUS", en: "CAMPUS" },
@@ -176,7 +180,8 @@ const announcements = [
     description: {
       fr: "Pour toute suggestion, critique ou erreur constatée sur le site, veuillez contacter l'équipe d'assistance via la section « À propos ».",
       en: "For any suggestions, criticisms, or errors you find on the site, please contact the support team through the About section."
-    }
+    },
+    destination: { page: "about" }
   },
 
 ];
@@ -287,11 +292,16 @@ function renderHome() {
     </section>
     <section aria-labelledby="announcements-heading">
       <div class="section-heading"><div><h2 id="announcements-heading">${copy.announcements}</h2><p>${copy.announcementsDescription}</p></div><span class="text-link">${copy.newsCount(announcements.length)}</span></div>
-      <div class="announcement-grid">${announcements.map(item => `
-        <article class="announcement-card">
-          <div class="announcement-meta"><span class="tag ${escapeHtml(item.color)}">${escapeHtml(text(item.tag))}</span><time>${new Intl.DateTimeFormat(language === "fr" ? "fr-FR" : "en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${item.date}T12:00:00`))}</time></div>
-          <h3>${escapeHtml(text(item.title))}</h3><p>${escapeHtml(text(item.description))}</p>
-        </article>`).join("")}
+      <div class="announcement-grid">${announcements.map(item => {
+        const destination = item.destination;
+        const style = item.color ? ` style="background-color: ${escapeHtml(item.color)}"` : "";
+        const content = `
+          <div class="announcement-meta"><span class="tag">${escapeHtml(text(item.tag))}</span><time>${new Intl.DateTimeFormat(language === "fr" ? "fr-FR" : "en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${item.date}T12:00:00`))}</time></div>
+          <h3>${escapeHtml(text(item.title))}</h3><p>${escapeHtml(text(item.description))}</p>`;
+        return destination
+          ? `<a class="announcement-card" href="#${escapeHtml(destination.page)}" data-action="open-announcement" data-page="${escapeHtml(destination.page)}" data-tab="${escapeHtml(destination.tab || "video")}"${style}>${content}</a>`
+          : `<article class="announcement-card"${style}>${content}</article>`;
+      }).join("")}
       </div>
     </section>
     <section class="home-subjects" aria-labelledby="subjects-heading">
@@ -451,9 +461,9 @@ function renderPage() {
   else renderHome();
 }
 
-function navigateTo(pageId) {
+function navigateTo(pageId,tap = "video") {
   activePage = pageId === "home" || pageId === "about" || getModule(pageId) ? pageId : "home";
-  activeTab = "video";
+  activeTab = ["video", "pdf", "link"].includes(tap) ? tap : "video";
   history.replaceState(null, "", `#${activePage}`);
   renderPage();
 }
@@ -468,7 +478,10 @@ primaryNav.addEventListener("click", event => {
 pageContent.addEventListener("click", event => {
   const control = event.target.closest("[data-action]");
   if (!control) return;
-  if (control.dataset.action === "open-module") {
+  if (control.dataset.action === "open-announcement") {
+    event.preventDefault();
+    navigateTo(control.dataset.page, control.dataset.tab);
+  } else if (control.dataset.action === "open-module") {
     navigateTo(control.dataset.module);
   } else if (control.dataset.action === "select-tab") {
     activeTab = control.dataset.tab;
