@@ -37,6 +37,7 @@ const languages = {
     noResourcesDescription: "Les ressources de ce type seront publiées ici.",
     videoUnavailable: "Ajoutez une URL de vidéo YouTube valide dans js/main.js.",
     documentUnavailable: "Le document n'est pas encore configuré. Ajoutez son chemin dans js/main.js.",
+    linkUnavailable: "Le lien n'est pas encore configuré. Ajoutez son URL dans js/main.js.",
     menuOpen: "Ouvrir le menu",
     menuClose: "Fermer le menu",
     linkNewTab: "Ouvre dans un nouvel onglet",
@@ -94,6 +95,7 @@ const languages = {
     noResourcesDescription: "Resources of this type will appear here.",
     videoUnavailable: "Add a valid YouTube video URL in js/main.js.",
     documentUnavailable: "This document is not configured yet. Add its path in js/main.js.",
+    linkUnavailable: "This link is not configured yet. Add its URL in js/main.js.",
     menuOpen: "Open menu",
     menuClose: "Close menu",
     linkNewTab: "Opens in a new tab",
@@ -134,6 +136,16 @@ const announcements = [
     description: {
       fr: "Retrouvez ici vos cours, TD et ressources pour bien démarrer votre année à l'USTHB.",
       en: "Find your courses, tutorials, and resources here to get your year at USTHB off to a great start."
+    }
+  },
+  {
+    tag: { fr: "IMPORTANT", en: "IMPORTANT" },
+    color: "green",
+    date: "2026-10-14",
+    title: { fr: "Nous avons un cours demain !", en: "We have a lesson tomorrow!" },
+    description: {
+      fr: "Demain à 8 h 30, nous avons un cours de MP ; vous trouverez le lien de la réunion dans la section MP.",
+      en: "Tomorrow at 8:30 AM, we have an MP lesson; you will find the meeting link in the MP section."
     }
   },
   {
@@ -184,7 +196,7 @@ const resources = {
     { type: "pdf", title: { fr: "STRUCTURE DE LA MACHINE 1", en: "MACHINE STRUCTURE 1" }, description: { fr: "", en: "" }, url: "assets/cri-strm/pdfs/STRM1_Chapter1_Part1_OUAZAR.pdf" },
   ],
   mp: [
-    //{ type: "link", title: { fr: "Wolfram MathWorld", en: "Wolfram MathWorld" }, description: { fr: "Référence pratique pour retrouver les définitions mathématiques.", en: "A handy reference for mathematical definitions." }, url: "https://mathworld.wolfram.com/" }
+    { type: "link", title: { fr: "Lien vers la leçon", en: "lesson link" }, description: { fr: "Le cours de jeudi commence à 8 h 30 du matin.", en: "The Thursday lesson begins at 8:30 AM." }, url: "https://meet.google.com/aui-trzf-syj?hs=224" }
   ],
   analyse: [
     //{ type: "link", title: { fr: "Desmos — calculatrice graphique", en: "Desmos — Graphing Calculator" }, description: { fr: "Explorez et représentez des fonctions en ligne.", en: "Explore and plot functions online." }, url: "https://www.desmos.com/calculator?lang=fr" }
@@ -236,6 +248,13 @@ function updateStaticLabels() {
     button.classList.toggle("is-active", selected);
     button.setAttribute("aria-pressed", String(selected));
   });
+}
+
+function setMenuOpen(isOpen) {
+  document.body.classList.toggle("menu-open", isOpen);
+  const menuToggle = document.getElementById("menu-toggle");
+  menuToggle.setAttribute("aria-expanded", String(isOpen));
+  menuToggle.setAttribute("aria-label", isOpen ? languages[language].menuClose : languages[language].menuOpen);
 }
 
 function renderNavigation() {
@@ -359,17 +378,18 @@ function resourceAction(resource) {
   const copy = languages[language];
   const label = resource.type === "video" ? copy.videoAction : resource.type === "pdf" ? copy.documentAction : copy.linkAction;
   const href = getResourceHref(resource);
-  const unavailable = !href;
-  const tag = unavailable ? "span" : "a";
-  const attributes = unavailable
-    ? ` aria-disabled="true" title="${resource.type === "video" ? copy.videoUnavailable : copy.documentUnavailable}"`
-    : ` href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer"`;
-  return `<${tag} class="resource-action${unavailable ? " is-unavailable" : ""}"${attributes}>${unavailable ? copy.unavailable : label}${unavailable ? "" : ' <span aria-hidden="true">→</span>'}</${tag}>`;
+  if (!href) {
+    const message = resource.type === "video"
+      ? copy.videoUnavailable
+      : resource.type === "pdf" ? copy.documentUnavailable : copy.linkUnavailable;
+    return `<span class="resource-action is-unavailable" aria-disabled="true" title="${message}">${copy.unavailable}</span>`;
+  }
+
+  return `<a class="resource-action" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${label} <span aria-hidden="true">→</span></a>`;
 }
 
-function renderResourceCard(resource, index) {
+function renderResourceCard(resource) {
   const copy = languages[language];
-  const module = getModule(activePage);
   const typeLabel = resource.type === "video" ? copy.videoType : resource.type === "pdf" ? copy.documentType : copy.linkType;
   const meta = `<div class="resource-topline"><span class="resource-type">${typeLabel}</span><span class="resource-date">${copy.semesterShort}</span></div>`;
   const details = `<div class="resource-body">${meta}<h3>${escapeHtml(text(resource.title))}</h3><p>${escapeHtml(text(resource.description))}</p>${resourceAction(resource)}</div>`;
@@ -395,22 +415,24 @@ function renderModule() {
     { id: "video", label: copy.videoTab, icon: "▷" },
     { id: "pdf", label: copy.documentTab, icon: "▤" },
     { id: "link", label: copy.linksTab, icon: "↗" }
-  ];
-  const filteredResources = allResources.map((resource, index) => ({ resource, index })).filter(item => item.resource.type === activeTab);
-  const tabCounts = Object.fromEntries(tabs.map(tab => [tab.id, allResources.filter(resource => resource.type === tab.id).length]));
+  ].map(tab => ({
+    ...tab,
+    count: allResources.filter(resource => resource.type === tab.id).length
+  }));
+  const filteredResources = allResources.filter(resource => resource.type === activeTab);
   const resourceCount = activeTab === "video" ? copy.videoCount(filteredResources.length) : activeTab === "pdf" ? copy.documentCount(filteredResources.length) : copy.resourceCount(filteredResources.length);
   pageContent.innerHTML = `
     <section class="module-header" style="--subject-accent:${module.color}">
       <div class="module-title-group"><span class="module-icon" aria-hidden="true">${module.icon}</span><div><h1>${escapeHtml(text(module.short))}</h1><p>${escapeHtml(text(module.name))}<span>·</span>${copy.semesterShort}</p></div></div>
       <div class="tabs" role="tablist" aria-label="${language === "fr" ? "Types de ressources" : "Resource types"}">${tabs.map(tab => `
         <button class="tab-button" id="tab-${tab.id}" role="tab" type="button" aria-selected="${activeTab === tab.id}" aria-controls="resource-panel" data-action="select-tab" data-tab="${tab.id}">
-          <span aria-hidden="true">${tab.icon}</span>${tab.label}<span class="tab-count">${tabCounts[tab.id]}</span>
+          <span aria-hidden="true">${tab.icon}</span>${tab.label}<span class="tab-count">${tab.count}</span>
         </button>`).join("")}
       </div>
     </section>
     <section id="resource-panel" role="tabpanel" aria-labelledby="tab-${activeTab}">
       <div class="module-toolbar"><p><strong>${resourceCount}</strong> ${copy.inModule}</p></div>
-      <div class="resource-grid">${filteredResources.length ? filteredResources.map(item => renderResourceCard(item.resource, item.index)).join("") : `
+      <div class="resource-grid">${filteredResources.length ? filteredResources.map(renderResourceCard).join("") : `
         <div class="resource-empty"><span aria-hidden="true">${activeTab === "video" ? "▷" : activeTab === "pdf" ? "▤" : "↗"}</span><strong>${copy.noResourcesTitle}</strong><p>${copy.noResourcesDescription}</p></div>`}
       </div>
     </section>`;
@@ -418,8 +440,7 @@ function renderModule() {
 
 function renderPage() {
   const copy = languages[language];
-  document.body.classList.remove("menu-open");
-  document.getElementById("menu-toggle").setAttribute("aria-expanded", "false");
+  setMenuOpen(false);
   const module = getModule(activePage);
   const pageLabel = module ? text(module.short) : activePage === "about" ? copy.about : copy.home;
   breadcrumb.innerHTML = `<span>${copy.breadcrumb}</span><b>/</b><strong>${escapeHtml(pageLabel)}</strong>`;
@@ -460,30 +481,17 @@ document.querySelector(".language-switch").addEventListener("click", event => {
   if (!button || button.dataset.language === language) return;
   language = button.dataset.language;
   localStorage.setItem("preferred_language", language);
-  updateStaticLabels();
   renderPage();
 });
 
-document.getElementById("menu-toggle").addEventListener("click", event => {
-  const isOpen = document.body.classList.toggle("menu-open");
-  event.currentTarget.setAttribute("aria-expanded", String(isOpen));
-  event.currentTarget.setAttribute("aria-label", isOpen ? languages[language].menuClose : languages[language].menuOpen);
+document.getElementById("menu-toggle").addEventListener("click", () => {
+  setMenuOpen(!document.body.classList.contains("menu-open"));
 });
 
-document.getElementById("sidebar-scrim").addEventListener("click", () => {
-  document.body.classList.remove("menu-open");
-  const menuToggle = document.getElementById("menu-toggle");
-  menuToggle.setAttribute("aria-expanded", "false");
-  menuToggle.setAttribute("aria-label", languages[language].menuOpen);
-});
+document.getElementById("sidebar-scrim").addEventListener("click", () => setMenuOpen(false));
 
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    document.body.classList.remove("menu-open");
-    const menuToggle = document.getElementById("menu-toggle");
-    menuToggle.setAttribute("aria-expanded", "false");
-    menuToggle.setAttribute("aria-label", languages[language].menuOpen);
-  }
+  if (event.key === "Escape") setMenuOpen(false);
 });
 
 window.addEventListener("hashchange", () => navigateTo(window.location.hash.slice(1)));
