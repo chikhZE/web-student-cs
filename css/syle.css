@@ -139,6 +139,7 @@ h1, h2, h3, p { margin-top: 0; }
 .text-link { padding: 5px 0; border: 0; background: transparent; color: #a9b0a9; cursor: pointer; font-size: 10px; }
 .text-link:hover { color: var(--main-color); }
 .announcement-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+.announcement-status { margin: 0 0 12px; color: var(--muted-color); font-size: 12px; }
 .announcement-card { display: block; min-height: 129px; padding: 15px; border: 1px solid #2b302b; border-radius: 9px; background: var(--card-bg); transition: transform .2s ease, background .2s ease, border-color .2s ease; }
 .announcement-card:hover { transform: translateY(-3px); border-color: #414a41; background: var(--card-hover); }
 .announcement-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }

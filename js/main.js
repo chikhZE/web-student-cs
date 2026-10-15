@@ -1,3 +1,24 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDy_pfYvDupKdqqgkTfszVmFdmNKAZtehs",
+  authDomain: "cs-students-1ceb8.firebaseapp.com",
+  projectId: "cs-students-1ceb8",
+  storageBucket: "cs-students-1ceb8.firebasestorage.app",
+  messagingSenderId: "611141881788",
+  appId: "1:611141881788:web:7374edc5fca88a1e1fa5b9",
+  measurementId: "G-74BLJQMRSQ"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+
 const languages = {
   fr: {
     home: "Accueil",
@@ -14,6 +35,10 @@ const languages = {
     explore: "Explorer les modules",
     announcements: "Dernières annonces",
     announcementsDescription: "Les nouvelles de votre espace étudiant.",
+    announcementsLoading: "Chargement des annonces…",
+    announcementsOffline: "Vous êtes hors ligne. Les annonces enregistrées peuvent rester disponibles.",
+    announcementsError: "Impossible de charger les annonces. Réessayez plus tard.",
+    noAnnouncements: "Aucune annonce pour le moment.",
     subjects: "Vos matières",
     subjectsDescription: "Accédez rapidement aux ressources de chaque module.",
     newsCount: count => `${count} actualités`,
@@ -72,6 +97,10 @@ const languages = {
     explore: "Explore modules",
     announcements: "Latest announcements",
     announcementsDescription: "News and updates from your student space.",
+    announcementsLoading: "Loading announcements…",
+    announcementsOffline: "You are offline. Previously loaded announcements may still be available.",
+    announcementsError: "Announcements could not be loaded. Please try again later.",
+    noAnnouncements: "There are no announcements yet.",
     subjects: "Your modules",
     subjectsDescription: "Quick access to resources for every module.",
     newsCount: count => `${count} updates`,
@@ -126,65 +155,7 @@ const modules = [
   { id: "tic", short: { fr: "TIC", en: "ICT" }, name: { fr: "Technologies de l'information", en: "Information and Communication Technology" }, icon: "⌘", color: "#e5cc6d", count: "06" }
 ];
 
-// Edit this list to publish announcements. Each item supports bilingual content.
-const announcements = [
-
-  {
-    tag: { fr: "IMPORTANT", en: "IMPORTANT" },
-    color: "#D0342C",
-    date: "2026-10-14",
-    title: { fr: "Nous avons un cours demain !", en: "We have a lesson tomorrow!" },
-    description: {
-      fr: "Demain à 8 h 30, nous avons un cours de MP ; vous trouverez le lien de la réunion dans la section MP.",
-      en: "Tomorrow at 8:30 AM, we have an MP lesson; you will find the meeting link in the MP section."
-    },
-    destination: { page: "mp", tab: "link" }
-  },
-  {
-    tag: { fr: "IMPORTANT", en: "WELCOME" },
-    color: "",
-    date: "2026-10-13",
-    title: { fr: "Bienvenue en première année !", en: "Welcome to your first year!" },
-    description: {
-      fr: "Retrouvez ici vos cours, TD et ressources pour bien démarrer votre année à l'USTHB.",
-      en: "Find your courses, tutorials, and resources here to get your year at USTHB off to a great start."
-    }
-  },
-
-  {
-    tag: { fr: "ALGORITHMIQUE", en: "ALGORITHMS" },
-    color: "",
-    date: "2026-10-13",
-    title: { fr: "Supports du cours disponibles", en: "Course materials are available" },
-    description: {
-      fr: "Les premières ressources d'algorithmique sont en ligne. Consultez l'espace du module.",
-      en: "The first algorithms resources are online. Visit the module page to explore them."
-    },
-    destination: { page: "algo", tab: "pdf" }
-  },
-  {
-    tag: { fr: "CAMPUS", en: "CAMPUS" },
-    color: "",
-    date: "2026-10-13",
-    title: { fr: "Votre espace de cours", en: "Your course space" },
-    description: {
-      fr: "Consultez les pages de vos modules pour retrouver les vidéos, documents et liens utiles du semestre.",
-      en: "Visit your module pages to find this semester's videos, documents, and useful links."
-    }
-  },
-  {
-    tag: { fr: "SUPPORT", en: "SUPPORT" },
-    color: "",
-    date: "2026-10-13",
-    title: { fr: "Aidez-nous à améliorer le site.", en: "Help us improve the website." },
-    description: {
-      fr: "Pour toute suggestion, critique ou erreur constatée sur le site, veuillez contacter l'équipe d'assistance via la section « À propos ».",
-      en: "For any suggestions, criticisms, or errors you find on the site, please contact the support team through the About section."
-    },
-    destination: { page: "about" }
-  },
-
-];
+let announcements = [];
 
 // Admin-managed catalog: add, edit, or remove entries here. Set url to a real
 // YouTube video URL, PDF path, or web address; relative asset paths are
@@ -222,6 +193,9 @@ const savedLanguage = localStorage.getItem("preferred_language");
 let language = savedLanguage === "en" ? "en" : "fr";
 let activePage = "home";
 let activeTab = "video";
+let announcementsLoaded = false;
+let announcementsError = false;
+let isOnline = navigator.onLine;
 
 function text(value) {
   return typeof value === "string" ? value : value[language];
@@ -291,23 +265,57 @@ function renderHome() {
       </div>
     </section>
     <section aria-labelledby="announcements-heading">
-      <div class="section-heading"><div><h2 id="announcements-heading">${copy.announcements}</h2><p>${copy.announcementsDescription}</p></div><span class="text-link">${copy.newsCount(announcements.length)}</span></div>
-      <div class="announcement-grid">${announcements.map(item => {
-        const destination = item.destination;
-        const style = item.color ? ` style="background-color: ${escapeHtml(item.color)}"` : "";
-        const content = `
-          <div class="announcement-meta"><span class="tag">${escapeHtml(text(item.tag))}</span><time>${new Intl.DateTimeFormat(language === "fr" ? "fr-FR" : "en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${item.date}T12:00:00`))}</time></div>
-          <h3>${escapeHtml(text(item.title))}</h3><p>${escapeHtml(text(item.description))}</p>`;
-        return destination
-          ? `<a class="announcement-card" href="#${escapeHtml(destination.page)}" data-action="open-announcement" data-page="${escapeHtml(destination.page)}" data-tab="${escapeHtml(destination.tab || "video")}"${style}>${content}</a>`
-          : `<article class="announcement-card"${style}>${content}</article>`;
-      }).join("")}
-      </div>
+      <div class="section-heading"><div><h2 id="announcements-heading">${copy.announcements}</h2><p>${copy.announcementsDescription}</p></div><span class="text-link" data-announcement-count></span></div>
+      <p class="announcement-status" data-announcement-status role="status" aria-live="polite"></p>
+      <div class="announcement-grid"></div>
     </section>
     <section class="home-subjects" aria-labelledby="subjects-heading">
       <div class="section-heading"><div><h2 id="subjects-heading">${copy.subjects}</h2><p>${copy.subjectsDescription}</p></div></div>
       <div class="subjects-grid">${renderSubjectCards()}</div>
     </section>`;
+  renderAnnouncements();
+}
+
+function announcementText(value) {
+  if (!value || typeof value !== "object") return "";
+  const translated = value[language] || value.fr || value.en;
+  return typeof translated === "string" ? translated : "";
+}
+
+function renderAnnouncements() {
+  const grid = pageContent.querySelector(".announcement-grid");
+  if (!grid) return;
+
+  const copy = languages[language];
+  const status = pageContent.querySelector("[data-announcement-status]");
+  const count = pageContent.querySelector("[data-announcement-count]");
+  const statusText = !isOnline
+    ? copy.announcementsOffline
+    : announcementsError
+      ? copy.announcementsError
+      : !announcementsLoaded
+        ? copy.announcementsLoading
+        : announcements.length === 0 ? copy.noAnnouncements : "";
+
+  status.textContent = statusText;
+  count.textContent = copy.newsCount(announcements.length);
+  grid.innerHTML = "";
+
+  grid.innerHTML = announcements.map(item => {
+    const color = typeof item.color === "string" && /^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i.test(item.color) ? item.color : "";
+    const style = color ? ` style="background-color: ${color}"` : "";
+    const date = typeof item.date === "string" ? new Date(`${item.date}T12:00:00`) : new Date(NaN);
+    const formattedDate = Number.isNaN(date.getTime())
+      ? ""
+      : new Intl.DateTimeFormat(language === "fr" ? "fr-FR" : "en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+    const content = `
+      <div class="announcement-meta"><span class="tag">${escapeHtml(announcementText(item.tag))}</span><time>${escapeHtml(formattedDate)}</time></div>
+      <h3>${escapeHtml(announcementText(item.title))}</h3><p>${escapeHtml(announcementText(item.description))}</p>`;
+    const destination = item.destination;
+    return destination && typeof destination.page === "string"
+      ? `<a class="announcement-card" href="#${escapeHtml(destination.page)}" data-action="open-announcement" data-page="${escapeHtml(destination.page)}" data-tab="${escapeHtml(typeof destination.tab === "string" ? destination.tab : "video")}"${style}>${content}</a>`
+      : `<article class="announcement-card"${style}>${content}</article>`;
+  }).join("");
 }
 
 function renderAbout() {
@@ -509,6 +517,30 @@ document.addEventListener("keydown", event => {
 
 window.addEventListener("hashchange", () => navigateTo(window.location.hash.slice(1)));
 
+window.addEventListener("online", () => {
+  isOnline = true;
+  renderAnnouncements();
+});
+
+window.addEventListener("offline", () => {
+  isOnline = false;
+  renderAnnouncements();
+});
+
 activePage = window.location.hash.slice(1);
 if (activePage !== "home" && activePage !== "about" && !getModule(activePage)) activePage = "home";
 renderPage();
+
+onSnapshot(collection(db, "news"), snapshot => {
+  announcements = snapshot.docs
+    .map(document => document.data())
+    .sort((first, second) => String(second.date || "").localeCompare(String(first.date || "")));
+  announcementsLoaded = true;
+  announcementsError = false;
+  renderAnnouncements();
+}, error => {
+  console.error("Failed to listen for Firestore news announcements:", error);
+  announcementsLoaded = true;
+  announcementsError = true;
+  renderAnnouncements();
+});
